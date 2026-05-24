@@ -28,6 +28,7 @@ jobs:
         import random
         from datetime import datetime
         import os
+        import html
 
         # 1. BACA NAMA DOMAIN DARI domain.txt
         try:
@@ -36,7 +37,7 @@ jobs:
             if not domain.startswith('http'):
                 domain = 'https://' + domain
         except:
-            domain = 'https://yourdomain.com' # Ganti jika domain.txt gagal dibaca
+            domain = 'https://safiarohades-spec.github.io/PrintableWallArt' # Fallback domain
 
         # 2. BACA KEYWORD DARI keyword.txt
         try:
@@ -58,12 +59,16 @@ jobs:
             title = f'{random.choice(hooks)} {kw.title()} {random.choice(suffixes)}'
             
             # Format URL sesuai detail.html?q=keyword
-            url_kw = kw.replace(' ', '-').lower()
-            link = f'{domain}/detail.html?q={url_kw}'
+            url_kw = urllib.parse.quote(kw.replace(' ', '-').lower())
+            raw_link = f'{domain}/detail.html?q={url_kw}'
+            xml_link = html.escape(raw_link) # Escape & menjadi &amp; jika ada
             
             # Format Image BING (Sama dengan script.js, rasio gambar vertikal 2:3 Pinterest)
             query_image = kw + ' wall art poster'
-            img_url = f'https://tse1.mm.bing.net/th?q={urllib.parse.quote(query_image)}&w=600&h=900&c=7&rs=1&p=0&dpr=1.5&pid=1.7'
+            raw_img_url = f'https://tse1.mm.bing.net/th?q={urllib.parse.quote(query_image)}&w=600&h=900&c=7&rs=1&p=0&dpr=1.5&pid=1.7'
+            
+            # PERBAIKAN KRUSIAL: Escape ampersand untuk atribut XML
+            xml_img_url = html.escape(raw_img_url)
             
             # Format Deskripsi Pinterest
             description = f'Beautiful {title} ideas for your home decor. Instant download high-quality printable wall art for your aesthetic room.'
@@ -72,10 +77,10 @@ jobs:
             item = f'''
             <item>
                 <title><![CDATA[{title}]]></title>
-                <link>{link}</link>
-                <description><![CDATA[<img src=\"{img_url}\" /><br/>{description}]]></description>
-                <enclosure url=\"{img_url}\" type=\"image/jpeg\" length=\"102400\" />
-                <guid isPermaLink=\"true\">{link}</guid>
+                <link>{xml_link}</link>
+                <description><![CDATA[<img src=\"{raw_img_url}\" /><br/>{description}]]></description>
+                <enclosure url=\"{xml_img_url}\" type=\"image/jpeg\" length=\"102400\" />
+                <guid isPermaLink=\"true\">{xml_link}</guid>
                 <pubDate>{datetime.utcnow().strftime('%a, %d %b %Y %H:%M:%S +0000')}</pubDate>
             </item>
             '''
@@ -83,7 +88,7 @@ jobs:
 
         # 5. BUNGKUS DENGAN TAG RSS 2.0
         rss_content = f'''<?xml version=\"1.0\" encoding=\"UTF-8\" ?>
-        <rss version=\"2.0\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns:atom=\"http://www.w3.org/2005/Atom\">
+        <rss version=\"2.0\" xmlns:media=\"http://search.yahoo.com/mrss/\" xmlns:atom=\"http://www.w3.org/2005/Atom\" xmlns:content=\"http://purl.org/rss/1.0/modules/content/\">
         <channel>
             <title>DecorHouz - Printable Wall Art Gallery</title>
             <link>{domain}</link>
